@@ -111,6 +111,9 @@ func run() error {
 
 	if strings.Contains(cfg.TargetClient, "_telnet") {
 		cfg.IsTelnetTarget = true
+		if cfg.TargetPort == 22 {
+			cfg.TargetPort = 23
+		}
 	}
 
 	dslClient, err := dsl.New(cfg)
