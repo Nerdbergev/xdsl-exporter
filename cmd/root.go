@@ -18,13 +18,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/Dentrax/xdsl-exporter/internal/rtop"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/Dentrax/xdsl-exporter/internal/rtop"
 
 	"github.com/Dentrax/xdsl-exporter/internal/config"
 	"github.com/Dentrax/xdsl-exporter/internal/dsl"
@@ -108,18 +109,27 @@ func run() error {
 		return fmt.Errorf("config check: %w", err)
 	}
 
+	if strings.Contains(cfg.TargetClient, "_telnet") {
+		cfg.IsTelnetTarget = true
+	}
+
 	dslClient, err := dsl.New(cfg)
 	if err != nil {
 		return err
 	}
 
-	rtopClient, err := rtop.New(cfg)
-	if err != nil {
-		return err
+	var exp *exporter.Exporter
+	if !cfg.IsTelnetTarget {
+		rtopClient, err := rtop.New(cfg)
+		if err != nil {
+			return err
+		}
+		exp = exporter.New(dslClient, rtopClient, logger)
+	} else {
+		exp = exporter.New(dslClient, nil, logger)
 	}
 
-	exporter := exporter.New(dslClient, rtopClient, logger)
-	prometheus.MustRegister(exporter)
+	prometheus.MustRegister(exp)
 
 	http.Handle(cfg.MetricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +160,7 @@ func run() error {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		exporter.CloseClient()
+		exp.CloseClient()
 		close(done)
 	}()
 

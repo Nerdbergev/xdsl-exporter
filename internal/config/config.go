@@ -19,6 +19,7 @@ type Config struct {
 	TargetSSHKeyPath    string
 	TargetSSHPassphrase string
 	TargetClient        string
+	IsTelnetTarget      bool
 }
 
 func (c Config) Check() error {

@@ -1,13 +1,14 @@
 package exporter
 
 import (
+	"strconv"
+
 	"3e8.eu/go/dsl"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	rtop "github.com/rapidloop/rtop/pkg/client"
 	"github.com/rapidloop/rtop/pkg/types"
-	"strconv"
 )
 
 const (
@@ -615,8 +616,10 @@ func (e *Exporter) getDataFromClients(metrics chan<- prometheus.Metric) error {
 	if err := e.getDataFromDsl(metrics); err != nil {
 		return err
 	}
-	if err := e.getDataFromRtop(metrics); err != nil {
-		return err
+	if e.rtop != nil {
+		if err := e.getDataFromRtop(metrics); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -14,6 +14,18 @@ func GenerateConfigFrom(cfg config.Config) (*dsl.Config, error) {
 		return nil, fmt.Errorf("invalid client type: %s: alloweds: %s", client, GetSupportedClients())
 	}
 
+	config := dsl.Config{
+		Type:         client,
+		Host:         cfg.TargetHost,
+		User:         cfg.TargetUser,
+		AuthPassword: getAuthPassword(cfg.TargetPassword),
+		Options:      nil,
+	}
+
+	if cfg.IsTelnetTarget {
+		return &config, nil
+	}
+
 	sshKey, err := cfg.ReadSSHKey()
 	if err != nil {
 		return nil, err
@@ -24,15 +36,10 @@ func GenerateConfigFrom(cfg config.Config) (*dsl.Config, error) {
 		return nil, err
 	}
 
-	return &dsl.Config{
-		Type:            client,
-		Host:            cfg.TargetHost,
-		User:            cfg.TargetUser,
-		AuthPassword:    getAuthPassword(cfg.TargetPassword),
-		AuthPrivateKeys: getAuthPrivateKeys(sshKey, cfg.TargetSSHPassphrase),
-		KnownHosts:      knownHosts,
-		Options:         nil,
-	}, nil
+	config.AuthPrivateKeys = getAuthPrivateKeys(sshKey, cfg.TargetSSHPassphrase)
+	config.KnownHosts = knownHosts
+
+	return &config, nil
 }
 
 func getAuthPassword(password string) dsl.PasswordCallback {
